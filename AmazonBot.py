@@ -1,8 +1,11 @@
 import requests
 import random
-from tkinter import Tk, Label, Button, filedialog, Text, Scrollbar, VERTICAL, RIGHT, Y, LEFT, BOTH, END
+from tkinter import Tk, Label, Button, filedialog, Text, Scrollbar, VERTICAL, RIGHT, Y, LEFT, BOTH, END, Entry, messagebox
 from tkinter import ttk
 import threading
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+import signal
+import sys
 
 requests.packages.urllib3.disable_warnings()
 
@@ -29,7 +32,7 @@ class Amazon:
             "Origin": "https://www.amazon.com",
             "Connection": "keep-alive",
             "X-Forwarded-For": "127.0.0.1",
-            "Referer": "hhttps://www.amazon.com/ap/signin?openid.pape.max_auth_age=0&openid.return_to=https%3A%2F%2Fwww.amazon.com%2F%3Fref_%3Dnav_ya_signin&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.assoc_handle=usflex&openid.mode=checkid_setup&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0",
+            "Referer": "https://www.amazon.com/ap/signin?openid.pape.max_auth_age=0&openid.return_to=https%3A%2F%2Fwww.amazon.com%2F%3Fref_%3Dnav_ya_signin&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.assoc_handle=usflex&openid.mode=checkid_setup&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0",
             "Upgrade-Insecure-Requests": "1",
         }
         data = {
@@ -74,36 +77,55 @@ def fun_action(num, text_widget, stop_event):
             text_widget.see(END)
             break
 
-def generate_and_check_numbers(text_widget, stop_event):
-    generated_numbers = set()  # To avoid generating the same number twice
-    while len(generated_numbers) < 100000000:  # Limit to avoid infinite loop
-        if stop_event.is_set():
-            break
-        num = random.randint(600000000, 699999999)
-        if num in generated_numbers:
-            continue  # Skip if this number has already been generated
-        generated_numbers.add(num)
-        phone_number = f"+34{num}"
-        amazon_checker = Amazon(phone_number)
-        result, _ = amazon_checker.check()
-        if result:
-            text_widget.insert(END, f"[+] Yes ==> {phone_number}\n")
-            with open("ValidSpain.txt", "a") as ff:
-                ff.write(f"{phone_number}\n")
-        else:
-            text_widget.insert(END, f"[-] No ==> {phone_number}\n")
-        text_widget.see(END)
+def generate_and_check_numbers(text_widget, stop_event, num_cores):
+    generated_numbers = set()
+    
+    with ProcessPoolExecutor(max_workers=num_cores) as executor:
+        futures = []
+        batch_size = 1000  # Batch size
+        total_numbers = 10000000  # Total numbers to generate
+        try:
+            while len(generated_numbers) < total_numbers:
+                if stop_event.is_set():
+                    print("Stopped by stop_event")
+                    break
+                batch_generated = 0
+                while batch_generated < batch_size and len(generated_numbers) < total_numbers:
+                    num = random.randint(600000000, 699999999)
+                    if num in generated_numbers:
+                        continue
+                    generated_numbers.add(num)
+                    phone_number = f"+34{num}"
+                    futures.append(executor.submit(Amazon(phone_number).check))
+                    batch_generated += 1
 
-def main(emails, text_widget, stop_event):
-    threads = []
-    for email in emails:
-        if stop_event.is_set():
-            break
-        thread = threading.Thread(target=fun_action, args=(email, text_widget, stop_event))
-        threads.append(thread)
-        thread.start()
-    for thread in threads:
-        thread.join()
+                for future in as_completed(futures):
+                    if stop_event.is_set():
+                        print("Stopped by stop_event during future wait")
+                        break
+                    try:
+                        result, _ = future.result()
+                        if result:
+                            text_widget.insert(END, f"[+] Yes ==> {phone_number}\n")
+                            with open("ValidSpain.txt", "a") as ff:
+                                ff.write(f"{phone_number}\n")
+                        else:
+                            text_widget.insert(END, f"[-] No ==> {phone_number}\n")
+                    except Exception as e:
+                        text_widget.insert(END, f"[!] Error ==> {str(e)}\n")
+                    text_widget.see(END)
+                futures.clear()  # Clear futures after processing the batch
+        finally:
+            executor.shutdown(wait=True, cancel_futures=True)
+        print("Number generation completed or stopped")
+
+def main(emails, text_widget, stop_event, num_cores):
+    results = []
+    with ThreadPoolExecutor(max_workers=num_cores) as executor:
+        futures = [executor.submit(fun_action, email, text_widget, stop_event) for email in emails]
+        for future in as_completed(futures):
+            results.append(future.result())
+    return results
 
 def browse_file():
     filename = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
@@ -113,20 +135,42 @@ def browse_file():
             result_text.delete(1.0, END)
             global stop_event
             stop_event.clear()
-            threading.Thread(target=main, args=(emails, result_text, stop_event)).start()
+            try:
+                num_cores = int(core_entry.get())
+                if num_cores < 1:
+                    raise ValueError("The number of cores must be at least 1.")
+                threading.Thread(target=main, args=(emails, result_text, stop_event, num_cores)).start()
+            except ValueError as e:
+                messagebox.showerror("Invalid Input", str(e))
 
 def generate_numbers():
     result_text.delete(1.0, END)
     global stop_event
     stop_event.clear()
-    threading.Thread(target=generate_and_check_numbers, args=(result_text, stop_event)).start()
+    try:
+        num_cores = int(core_entry.get())
+        if num_cores < 1:
+            raise ValueError("The number of cores must be at least 1.")
+        print("Starting number generation with", num_cores, "cores")
+        threading.Thread(target=generate_and_check_numbers, args=(result_text, stop_event, num_cores)).start()
+    except ValueError as e:
+        messagebox.showerror("Invalid Input", str(e))
 
 def cancel_operations():
     global stop_event
     stop_event.set()
+    print("Operations canceled")
+
+def on_closing():
+    cancel_operations()
+    for thread in threading.enumerate():
+        if thread != threading.main_thread():
+            thread.join()
+    root.destroy()
+    sys.exit()
 
 root = Tk()
-root.title("Amazon Email Checker")
+root.title("Amazon Email and Number Checker")
 
 style = ttk.Style()
 style.theme_use("clam")
@@ -140,11 +184,17 @@ style.configure("TFrame", background="#f2f2f2")
 frame = ttk.Frame(root, padding="10")
 frame.pack(fill="both", expand=True)
 
-label = ttk.Label(frame, text="Amazon Email Checker")
+label = ttk.Label(frame, text="Amazon Email and Number Checker")
 label.pack(pady=10)
 
-button = ttk.Button(frame, text="Browse Email List", command=browse_file)
-button.pack(pady=10)
+core_label = ttk.Label(frame, text="Number of Cores")
+core_label.pack(pady=10)
+
+core_entry = Entry(frame)
+core_entry.pack(pady=10)
+
+browse_button = ttk.Button(frame, text="Browse Email List", command=browse_file)
+browse_button.pack(pady=10)
 
 generate_button = ttk.Button(frame, text="Generate +34 Numbers", command=generate_numbers)
 generate_button.pack(pady=10)
@@ -162,5 +212,7 @@ scrollbar.pack(side=RIGHT, fill=Y)
 result_text.pack(side=LEFT, fill=BOTH, expand=True)
 
 stop_event = threading.Event()
+
+root.protocol("WM_DELETE_WINDOW", on_closing)
 
 root.mainloop()
