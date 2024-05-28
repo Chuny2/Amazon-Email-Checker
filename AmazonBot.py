@@ -169,50 +169,51 @@ def on_closing():
     root.destroy()
     sys.exit()
 
-root = Tk()
-root.title("Amazon Email and Number Checker")
+if __name__ == "__main__":
+    root = Tk()
+    root.title("Amazon Email and Number Checker")
 
-style = ttk.Style()
-style.theme_use("clam")
+    style = ttk.Style()
+    style.theme_use("clam")
 
-style.configure("TButton", font=("Helvetica", 12), background="#4CAF50", foreground="white", padding=10)
-style.map("TButton", background=[("active", "#45a049")])
+    style.configure("TButton", font=("Helvetica", 12), background="#4CAF50", foreground="white", padding=10)
+    style.map("TButton", background=[("active", "#45a049")])
 
-style.configure("TLabel", font=("Helvetica", 16), padding=10)
-style.configure("TFrame", background="#f2f2f2")
+    style.configure("TLabel", font=("Helvetica", 16), padding=10)
+    style.configure("TFrame", background="#f2f2f2")
 
-frame = ttk.Frame(root, padding="10")
-frame.pack(fill="both", expand=True)
+    frame = ttk.Frame(root, padding="10")
+    frame.pack(fill="both", expand=True)
 
-label = ttk.Label(frame, text="Amazon Email and Number Checker")
-label.pack(pady=10)
+    label = ttk.Label(frame, text="Amazon Email and Number Checker")
+    label.pack(pady=10)
 
-core_label = ttk.Label(frame, text="Number of Cores")
-core_label.pack(pady=10)
+    core_label = ttk.Label(frame, text="Number of Cores")
+    core_label.pack(pady=10)
 
-core_entry = Entry(frame)
-core_entry.pack(pady=10)
+    core_entry = Entry(frame)
+    core_entry.pack(pady=10)
 
-browse_button = ttk.Button(frame, text="Browse Email List", command=browse_file)
-browse_button.pack(pady=10)
+    browse_button = ttk.Button(frame, text="Browse Email List", command=browse_file)
+    browse_button.pack(pady=10)
 
-generate_button = ttk.Button(frame, text="Generate +34 Numbers", command=generate_numbers)
-generate_button.pack(pady=10)
+    generate_button = ttk.Button(frame, text="Generate +34 Numbers", command=generate_numbers)
+    generate_button.pack(pady=10)
 
-cancel_button = ttk.Button(frame, text="Cancel Operations", command=cancel_operations)
-cancel_button.pack(pady=10)
+    cancel_button = ttk.Button(frame, text="Cancel Operations", command=cancel_operations)
+    cancel_button.pack(pady=10)
 
-result_frame = ttk.Frame(frame)
-result_frame.pack(fill="both", expand=True)
+    result_frame = ttk.Frame(frame)
+    result_frame.pack(fill="both", expand=True)
 
-scrollbar = Scrollbar(result_frame, orient=VERTICAL)
-result_text = Text(result_frame, height=20, width=50, yscrollcommand=scrollbar.set, wrap="none", font=("Helvetica", 12), bg="#e0e0e0", fg="#000")
-scrollbar.config(command=result_text.yview)
-scrollbar.pack(side=RIGHT, fill=Y)
-result_text.pack(side=LEFT, fill=BOTH, expand=True)
+    scrollbar = Scrollbar(result_frame, orient=VERTICAL)
+    result_text = Text(result_frame, height=20, width=50, yscrollcommand=scrollbar.set, wrap="none", font=("Helvetica", 12), bg="#e0e0e0", fg="#000")
+    scrollbar.config(command=result_text.yview)
+    scrollbar.pack(side=RIGHT, fill=Y)
+    result_text.pack(side=LEFT, fill=BOTH, expand=True)
 
-stop_event = threading.Event()
+    stop_event = threading.Event()
 
-root.protocol("WM_DELETE_WINDOW", on_closing)
+    root.protocol("WM_DELETE_WINDOW", on_closing)
 
-root.mainloop()
+    root.mainloop()
