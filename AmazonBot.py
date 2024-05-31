@@ -32,7 +32,7 @@ class Amazon:
             "Origin": "https://www.amazon.com",
             "Connection": "keep-alive",
             "X-Forwarded-For": "127.0.0.1",
-            "Referer": "https://www.amazon.com/ap/signin?openid.pape.max_auth_age=0&openid.return_to=https%3A%2F%2Fwww.amazon.com%2F%3Fref_%3Dnav_ya_signin&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.assoc_handle=usflex&openid.mode=checkid_setup&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0",
+            "Referer": "https://www.amazon.com/ap/signin?openid.pape.max_auth_age=0&openid.return_to=https%3A%2F%2Fwww.amazon.com%2F%3Fref_%3Dnav_ya_signin&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.assoc_handle=usflex&openid.mode=checkid_setup&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0",
             "Upgrade-Insecure-Requests": "1",
         }
         data = {
@@ -54,6 +54,124 @@ class Amazon:
             return False, res
         else:
             return False, res
+
+def generate_phone_number(country_code):
+    prefixes = {
+        '1': ['2', '3', '4', '5', '6', '7', '8', '9'],  # USA/Canada
+        '7': ['9'],  # Russia (mobile numbers start with 9)
+        '20': ['10', '11', '12'],  # Egypt
+        '27': ['6', '7'],  # South Africa
+        '30': ['6'],  # Greece
+        '31': ['6'],  # Netherlands
+        '32': ['46', '47', '48', '49'],  # Belgium
+        '33': ['6', '7'],  # France
+        '34': ['6'],  # Spain
+        '39': ['3'],  # Italy
+        '41': ['7'],  # Switzerland
+        '44': ['7'],  # United Kingdom
+        '46': ['7'],  # Sweden
+        '47': ['4'],  # Norway
+        '48': ['5', '6', '7'],  # Poland
+        '49': ['15', '16', '17'],  # Germany
+        '55': ['9'],  # Brazil
+        '60': ['10', '11', '12', '13', '14', '16', '17', '18', '19'],  # Malaysia
+        '61': ['4'],  # Australia
+        '62': ['8'],  # Indonesia
+        '63': ['9'],  # Philippines
+        '65': ['8', '9'],  # Singapore
+        '66': ['8', '9'],  # Thailand
+        '81': ['70', '80', '90'],  # Japan
+        '82': ['10', '11'],  # South Korea
+        '86': ['13', '14', '15', '17', '18', '19'],  # China
+        '90': ['5'],  # Turkey
+        '91': ['7', '8', '9'],  # India
+        '92': ['3'],  # Pakistan
+        '93': ['70', '71', '72', '73', '74', '78', '79'],  # Afghanistan
+        '94': ['7'],  # Sri Lanka
+        '98': ['9'],  # Iran
+        '212': ['6', '7'],  # Morocco
+        '213': ['5', '6', '7'],  # Algeria
+        '216': ['2', '5', '9'],  # Tunisia
+        '218': ['9'],  # Libya
+        '234': ['70', '80', '81', '90'],  # Nigeria
+        '254': ['7'],  # Kenya
+        '255': ['6', '7'],  # Tanzania
+        '256': ['7'],  # Uganda
+        '260': ['9'],  # Zambia
+        '263': ['7'],  # Zimbabwe
+        '351': ['9'],  # Portugal
+        '964': ['7'],  # Iraq
+        '965': ['5', '6'],  # Kuwait
+        '966': ['5'],  # Saudi Arabia
+        '968': ['9'],  # Oman
+        '971': ['50', '52', '54', '55', '56'],  # United Arab Emirates
+        '972': ['5'],  # Israel
+        '974': ['3', '5', '6', '7'],  # Qatar
+    }
+    if country_code not in prefixes:
+        return "Código de país no soportado."
+
+    prefix = random.choice(prefixes[country_code])
+
+    def random_number_sequence(length):
+        return ''.join([str(random.randint(0, 9)) for _ in range(length)])
+
+    # Define the format for each country code
+    formats = {
+        '1': f"+{country_code}{prefix}{random_number_sequence(9)}",
+        '44': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '34': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '49': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '33': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '39': f"+{country_code}{prefix}{random_number_sequence(9)}",
+        '61': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '55': f"+{country_code}{random.randint(10, 99)}{prefix}{random_number_sequence(8)}",
+        '91': f"+{country_code}{prefix}{random_number_sequence(9)}",
+        '81': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '86': f"+{country_code}{prefix}{random_number_sequence(9)}",
+        '7': f"+{country_code}{prefix}{random_number_sequence(9)}",
+        '27': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '82': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '351': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '32': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '31': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '46': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '47': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '41': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '48': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '30': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '90': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '62': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '60': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '63': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '65': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '66': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '20': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '212': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '213': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '216': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '218': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '234': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '254': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '255': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '256': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '260': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '263': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '94': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '92': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '98': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '972': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '965': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '968': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '974': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '966': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '971': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '93': f"+{country_code}{prefix}{random_number_sequence(8)}",
+        '964': f"+{country_code}{prefix}{random_number_sequence(8)}",
+    }
+
+    phone_number_str = formats.get(country_code, "Código de país no soportado.")
+    return phone_number_str
 
 def fun_action(num, text_widget, stop_event):
     num = num.strip()
@@ -77,9 +195,9 @@ def fun_action(num, text_widget, stop_event):
             text_widget.see(END)
             break
 
-def generate_and_check_numbers(text_widget, stop_event, num_cores):
+def generate_and_check_numbers(text_widget, stop_event, num_cores, country_code):
     generated_numbers = set()
-    
+
     with ProcessPoolExecutor(max_workers=num_cores) as executor:
         futures = []
         batch_size = 1000  # Batch size
@@ -91,11 +209,10 @@ def generate_and_check_numbers(text_widget, stop_event, num_cores):
                     break
                 batch_generated = 0
                 while batch_generated < batch_size and len(generated_numbers) < total_numbers:
-                    num = random.randint(600000000, 699999999)
-                    if num in generated_numbers:
+                    phone_number = generate_phone_number(country_code)
+                    if phone_number in generated_numbers:
                         continue
-                    generated_numbers.add(num)
-                    phone_number = f"+34{num}"
+                    generated_numbers.add(phone_number)
                     futures.append((phone_number, executor.submit(Amazon(phone_number).check)))
                     batch_generated += 1
 
@@ -107,7 +224,7 @@ def generate_and_check_numbers(text_widget, stop_event, num_cores):
                         result, _ = future.result()
                         if result:
                             text_widget.insert(END, f"[+] Yes ==> {phone_number}\n")
-                            with open("ValidSpain.txt", "a") as ff:
+                            with open(f"Valid_{country_code}.txt", "a") as ff:
                                 ff.write(f"{phone_number}\n")
                         else:
                             text_widget.insert(END, f"[-] No ==> {phone_number}\n")
@@ -149,10 +266,13 @@ def generate_numbers():
     stop_event.clear()
     try:
         num_cores = int(core_entry.get())
+        country_code = country_combobox.get()
         if num_cores < 1:
             raise ValueError("The number of cores must be at least 1.")
-        print("Starting number generation with", num_cores, "cores")
-        threading.Thread(target=generate_and_check_numbers, args=(result_text, stop_event, num_cores)).start()
+        if not country_code:
+            raise ValueError("Please select a country.")
+        print(f"Starting number generation for country {country_code} with {num_cores} cores")
+        threading.Thread(target=generate_and_check_numbers, args=(result_text, stop_event, num_cores, country_code)).start()
     except ValueError as e:
         messagebox.showerror("Invalid Input", str(e))
 
@@ -194,10 +314,21 @@ if __name__ == "__main__":
     core_entry = Entry(frame)
     core_entry.pack(pady=10)
 
+    country_label = ttk.Label(frame, text="Select Country")
+    country_label.pack(pady=10)
+
+    country_combobox = ttk.Combobox(frame, values=[
+        '1', '7', '20', '27', '30', '31', '32', '33', '34', '39', '44', '46', '47',
+        '48', '49', '55', '60', '61', '62', '63', '65', '66', '81', '82', '86',
+        '90', '91', '92', '93', '94', '98', '212', '213', '216', '218', '234', '254',
+        '255', '256', '260', '263', '351', '965', '966', '968', '971', '972', '974', '964'
+    ])
+    country_combobox.pack(pady=10)
+
     browse_button = ttk.Button(frame, text="Browse Email List", command=browse_file)
     browse_button.pack(pady=10)
 
-    generate_button = ttk.Button(frame, text="Generate +34 Numbers", command=generate_numbers)
+    generate_button = ttk.Button(frame, text="Generate Numbers", command=generate_numbers)
     generate_button.pack(pady=10)
 
     cancel_button = ttk.Button(frame, text="Cancel Operations", command=cancel_operations)
