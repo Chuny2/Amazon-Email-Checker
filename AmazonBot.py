@@ -96,10 +96,10 @@ def generate_and_check_numbers(text_widget, stop_event, num_cores):
                         continue
                     generated_numbers.add(num)
                     phone_number = f"+34{num}"
-                    futures.append(executor.submit(Amazon(phone_number).check))
+                    futures.append((phone_number, executor.submit(Amazon(phone_number).check)))
                     batch_generated += 1
 
-                for future in as_completed(futures):
+                for phone_number, future in futures:
                     if stop_event.is_set():
                         print("Stopped by stop_event during future wait")
                         break
