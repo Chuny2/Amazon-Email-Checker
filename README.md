@@ -69,13 +69,14 @@ python3 AmazonBot.py
    - Use `+{country_code}` for the international code, `{prefix}` for the starting digits, and `{random_number_sequence(n)}` for the rest of the number.
 
 4. Update constants.py to include the new country:
-  ```python
-  country_codes = {
-    'NewCountry': '999',
-  }
-  ```
-  - Replace 'NewCountry' with the country name.
-  - Replace '999' with the new country code.
+    ```python
+    country_codes = {
+      'NewCountry': '999',
+    }
+    ```
+    - Replace 'NewCountry' with the country name.
+    - Replace '999' with the new country code.
+
 5. Save and restart the app.
 
 ## Disclaimer
