@@ -1,11 +1,19 @@
 import sys
 import threading
+import time
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                             QPushButton, QLabel, QComboBox, QTextEdit, QLineEdit, QFrame)
-from PyQt6.QtCore import Qt, QObject, pyqtSignal, QThreadPool
-from PyQt6.QtGui import QFont, QColor, QPalette
+from PyQt6.QtCore import Qt, QObject, pyqtSignal, QTimer
+from PyQt6.QtGui import QFont, QColor, QPalette, QTextCursor
 from utils import browse_file, generate_numbers, cancel_operations, on_closing
 from constants import country_codes
+
+# Maximum number of log lines to keep in the UI
+MAX_LOG_LINES = 200
+# Buffer zone - only trim when we exceed this percentage over maximum 
+TRIM_BUFFER = 0.25
+# Target size after trimming (percentage of max)
+TRIM_TARGET = 0.75
 
 class TextUpdateSignals(QObject):
     append_text = pyqtSignal(str)
@@ -19,8 +27,21 @@ class MainWindow(QMainWindow):
         self.signals = TextUpdateSignals()
         self.signals.append_text.connect(self.append_text_safe)
         self.stop_event = threading.Event()
-        self.threadpool = QThreadPool()
+        self.log_lines_count = 0
+        self.auto_scroll = True  # Flag to track if auto-scrolling is enabled
+        self.is_updating_text = False  # Flag to prevent recursive scroll updates
+        self.last_manual_scroll_time = time.time()  # Track when user last scrolled
+        self.user_scrolled = False  # Explicit flag for user scrolling
         self.setup_ui()
+        
+        # Connect scrollbar value change to track user scrolling
+        self.result_text.verticalScrollBar().valueChanged.connect(self.scroll_changed)
+        
+        # Add timer to periodically check if we should reattach to bottom
+        self.scroll_timer = QTimer()
+        self.scroll_timer.setInterval(500)  # Check every 500ms
+        self.scroll_timer.timeout.connect(self.check_auto_scroll)
+        self.scroll_timer.start()
 
     def setup_ui(self):
         # Set up the main widget and layout
@@ -122,15 +143,116 @@ class MainWindow(QMainWindow):
         dark_palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)
         self.setPalette(dark_palette)
 
+    def scroll_changed(self, value):
+        """Track if user has scrolled up or is at the bottom"""
+        # Skip if we're programmatically updating text
+        if self.is_updating_text:
+            return
+            
+        scrollbar = self.result_text.verticalScrollBar()
+        max_value = scrollbar.maximum()
+        
+        # If scrollbar is at the bottom (with small margin)
+        at_bottom = (max_value - value) <= 5
+        
+        # If moved away from bottom
+        if not at_bottom and self.auto_scroll:
+            self.auto_scroll = False
+            self.user_scrolled = True
+            self.last_manual_scroll_time = time.time()
+        # If explicitly scrolled to bottom
+        elif at_bottom and not self.auto_scroll:
+            self.auto_scroll = True
+            self.user_scrolled = False
+
+    def check_auto_scroll(self):
+        """Check if we should re-enable auto-scroll after user inactivity"""
+        # If user previously scrolled away but hasn't scrolled in 3 seconds
+        if self.user_scrolled and time.time() - self.last_manual_scroll_time > 3:
+            scrollbar = self.result_text.verticalScrollBar() 
+            at_bottom = (scrollbar.maximum() - scrollbar.value()) <= 5
+            
+            # If they're at the bottom now, re-enable auto-scroll
+            if at_bottom:
+                self.auto_scroll = True
+                self.user_scrolled = False
+
     def append_text_safe(self, text):
-        """Thread-safe method to append text to result_text"""
-        self.result_text.append(text)
-        self.result_text.ensureCursorVisible()
+        """Thread-safe method to append text to result_text with line limiting"""
+        try:
+            # Set flag to prevent scroll detection during update
+            self.is_updating_text = True
+            
+            # Remember scroll position and auto-scroll state
+            scrollbar = self.result_text.verticalScrollBar()
+            prev_pos = scrollbar.value()
+            should_auto_scroll = self.auto_scroll
+            
+            # Add the text to the end
+            cursor = self.result_text.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            self.result_text.setTextCursor(cursor)
+            self.result_text.insertPlainText(text + "\n")
+            self.log_lines_count += 1
+            
+            # Only trim logs after accumulating a significant number beyond the limit
+            trim_threshold = int(MAX_LOG_LINES * (1 + TRIM_BUFFER))
+            if self.log_lines_count > trim_threshold:
+                # Get current text and split into lines
+                current_text = self.result_text.toPlainText()
+                lines = current_text.split('\n')
+                
+                # Calculate how many lines to remove to get to the target size
+                target_size = int(MAX_LOG_LINES * TRIM_TARGET)
+                lines_to_remove = len(lines) - target_size
+                
+                if lines_to_remove > 0:
+                    # Calculate approximately how much text will be removed
+                    text_before = len(current_text)
+                    
+                    # Remove oldest lines
+                    new_text = '\n'.join(lines[lines_to_remove:])
+                    text_after = len(new_text)
+                    
+                    # Block UI updates during the change
+                    self.result_text.setUpdatesEnabled(False)
+                    
+                    # Update content
+                    self.result_text.setPlainText(new_text)
+                    
+                    # Update counter
+                    self.log_lines_count = len(lines) - lines_to_remove
+                    
+                    # Re-enable UI updates
+                    self.result_text.setUpdatesEnabled(True)
+                    
+                    # If not at bottom, adjust scroll position to maintain relative position
+                    if not should_auto_scroll and prev_pos > 0:
+                        # Calculate new position - if we removed text above the visible area
+                        new_pos = max(0, prev_pos - (text_before - text_after))
+                        scrollbar.setValue(new_pos)
+            
+            # Only scroll to bottom if auto-scroll is enabled
+            if should_auto_scroll:
+                QApplication.processEvents()  # Let UI update
+                scrollbar.setValue(scrollbar.maximum())
+            else:
+                # Try to maintain previous scroll position if we weren't trimming
+                if self.log_lines_count <= trim_threshold:
+                    scrollbar.setValue(prev_pos)
+                
+        finally:
+            # Always reset flag
+            self.is_updating_text = False
 
     def browse_file_wrapper(self):
+        # Force auto-scroll when starting new operations
+        self.auto_scroll = True
         browse_file(self.result_text, self.stop_event, self.core_entry, self.signals)
 
     def generate_numbers_wrapper(self):
+        # Force auto-scroll when starting new operations
+        self.auto_scroll = True
         generate_numbers(self.result_text, self.stop_event, self.core_entry, self.country_combo, country_codes, self.signals)
 
     def cancel_operations_wrapper(self):

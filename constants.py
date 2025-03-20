@@ -1,3 +1,8 @@
+"""
+Constants used throughout the Amazon Email Checker application.
+Contains mappings between country names and their calling codes.
+"""
+
 country_codes = {
     'USA/Canada': '1',
     'Russia': '7',
