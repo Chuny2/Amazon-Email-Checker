@@ -27,7 +27,7 @@ Here’s a demo of the application in action:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/Amazon-Email-Checker.git
+git clone https://github.com/chuny2/Amazon-Email-Checker.git
 cd Amazon-Email-Checker
 ```
 
