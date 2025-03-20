@@ -11,6 +11,12 @@ A Python application with GUI for checking the validity of emails and phone numb
 - **Dark Theme Interface**: User-friendly dark-themed interface
 - **Progress Tracking**: Monitor validation progress, speed, and success rates
 
+## Preview
+
+Here’s a demo of the application in action:
+
+![Demo of the Application](AmazonGif.gif)
+
 ## Requirements
 
 - Python 3.6+
