@@ -1,17 +1,30 @@
 
 import requests
 from bs4 import BeautifulSoup
+import threading
 
 class Amazon:
     _session = requests.Session()
     _login_params = None
+    _lock = threading.Lock()
+
+    @classmethod
+    def initialize_session(cls):
+        """Initialize the session and fetch login parameters once at program start"""
+        with cls._lock:
+            if cls._login_params is None:
+                print("[DEBUG] Initializing Amazon session and fetching login parameters...")
+                instance = cls.__new__(cls) 
+                cls._login_params = instance._fetch_login_params()
+                print("[DEBUG] Login parameters successfully initialized!")
+            else:
+                print("[DEBUG] Login parameters already initialized, skipping...")
 
     
     def __init__(self, num):
         self.url = "https://www.amazon.com/ap/signin"
         self.num = num
-        if Amazon._login_params is None:
-            Amazon._login_params = self._fetch_login_params()
+       
 
 
     def _fetch_login_params(self):
@@ -46,6 +59,10 @@ class Amazon:
 
 
     def check(self):
+        # Ensure login parameters are available
+        if Amazon._login_params is None:
+            raise RuntimeError("Amazon session not initialized! Call Amazon.initialize_session() first.")
+            
         cookies = {
             "session-id": Amazon._login_params["session_id"],
             "session-id-time": Amazon._login_params["session_id_time"],
@@ -65,9 +82,15 @@ class Amazon:
             "password": '',
  
         }
-        res = requests.post(self.url, headers=headers, cookies=cookies, data=data).text
 
-        if "ap_change_login_claim" in res:
+        proxies = {
+            "http": "http://127.0.0.1:8080",
+            "https": "http://127.0.0.1:8080"
+        }
+
+        res = requests.post(self.url, headers=headers, cookies=cookies, data=data, proxies=proxies, verify=False).text
+
+        if "ap_change_login_claim" in res or "auth-email-claim" in res or "auth-password-claim" in res:
             return True, res
         elif "There was a problem" in res:
             return False, res

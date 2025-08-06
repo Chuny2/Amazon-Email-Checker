@@ -176,6 +176,4 @@ After adding these changes, the new countries will appear in the dropdown menu, 
 
 ## Disclaimer
 
-This application interacts with Amazon's authentication system by simulating requests. To keep it functional, ensure that cookies, headers, and request data in the `Amazon` class (in `amazon_auth.py`) are updated regularly to reflect any changes in Amazon's system. These include session tokens, user-agent strings, and other necessary fields in headers and cookies.
-
 Be aware that using this tool may violate Amazon's terms of service, and it is your responsibility to use it appropriately.
