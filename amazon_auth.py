@@ -83,12 +83,8 @@ class Amazon:
  
         }
 
-        proxies = {
-            "http": "http://127.0.0.1:8080",
-            "https": "http://127.0.0.1:8080"
-        }
 
-        res = requests.post(self.url, headers=headers, cookies=cookies, data=data, proxies=proxies, verify=False).text
+        res = requests.post(self.url, headers=headers, cookies=cookies, data=data).text
 
         if "ap_change_login_claim" in res or "auth-email-claim" in res or "auth-password-claim" in res:
             return True, res
