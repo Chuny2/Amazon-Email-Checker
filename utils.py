@@ -74,9 +74,17 @@ def on_closing(root, stop_event):
     root.destroy()
     sys.exit()
 
-def worker_amazon_check(number):
-    """Check if a number or email is valid on Amazon."""
+def worker_amazon_check(number, stop_event: Event | None = None):
+    """Check if a number or email is valid on Amazon.
+
+    Returns a tuple: (number, is_valid, error)
+    """
     try:
+        # Cooperative cancellation before starting any network work
+        if stop_event and stop_event.is_set():
+            return (number, None, "Cancelled")
+
+        # Do not pass stop_event into Amazon.check to match current signature
         is_valid, _ = Amazon(number).check()
         return (number, is_valid, None)
     except Exception as e:
@@ -138,7 +146,7 @@ def generate_and_check_numbers(signals, stop_event, num_cores, country_code):
                 if number is None:  # End signal
                     break
                 
-                result = worker_amazon_check(number)
+                result = worker_amazon_check(number, stop_event)
                 num, is_valid, error = result
                 
                 processed_count += 1
@@ -182,17 +190,37 @@ def generate_and_check_numbers(signals, stop_event, num_cores, country_code):
     signals.append_text.emit(f"[*] Completed: {processed_count} numbers processed, {valid_count} valid, {rate:.2f} num/s")
 
 def main(emails, signals, stop_event, num_cores):
-    """Main function to check emails."""
-    with ThreadPoolExecutor(max_workers=num_cores) as executor:
-        futures = [executor.submit(worker_amazon_check, email) for email in emails]
+    """Main function to check emails with cooperative cancellation.
+
+    Ensures that when stop_event is set, pending futures are cancelled and we do not
+    wait for the entire pool to finish.
+    """
+    executor = ThreadPoolExecutor(max_workers=num_cores)
+    try:
+        futures = [executor.submit(worker_amazon_check, email, stop_event) for email in emails]
+
         for future in as_completed(futures):
+            # If user requested cancellation, stop submitting/processing and cancel pending
             if stop_event.is_set():
-                break
+                for f in futures:
+                    f.cancel()
+                # Do not wait for running tasks; cancel those not started
+                executor.shutdown(wait=False, cancel_futures=True)
+                return
+
             num, is_valid, error = future.result()
             if error:
-                signals.append_text.emit(f"[!] Error ==> {error}")
+                # Suppress noisy log on cooperative cancel
+                if error != "Cancelled":
+                    signals.append_text.emit(f"[!] Error ==> {error}")
             elif is_valid:
                 safe_write_to_file("Valid.txt", num)
                 signals.append_text.emit(f"[+] Yes ==> {num}")
             else:
                 signals.append_text.emit(f"[-] No ==> {num}")
+    finally:
+        # Best-effort fast shutdown; if already shut down above, this is a no-op
+        try:
+            executor.shutdown(wait=False, cancel_futures=True)
+        except Exception:
+            pass
