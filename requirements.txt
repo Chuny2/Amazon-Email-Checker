@@ -1,2 +1,5 @@
+PyQt6
 requests
-tk
+beautifulsoup4
+phonenumbers
+pycountry
