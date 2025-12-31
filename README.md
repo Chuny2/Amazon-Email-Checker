@@ -39,11 +39,10 @@ A Python tool to verify Amazon accounts using emails or phone numbers. This tool
 1. Click **Browse Email List** and select your `.txt` file.
 2. The bot will process the list using the specified thread count.
 
-
 <div align="center">
-  <video src="https://github.com/Chuny2/Amazon-Email-Checker/raw/main/docs/video.mp4" width="100%" controls></video>
+  <img src="docs/demo.gif" width="100%" alt="Amazon Email Checker Demo">
   <br>
-  <em>(If the video doesn't play, <a href="docs/video.mp4">click here to download</a>)</em>
+  <em>(High quality video: <a href="https://github.com/Chuny2/Amazon-Email-Checker/raw/main/docs/video.mp4">Click here to download</a>)</em>
 </div>
 
 ##  Disclaimer
